@@ -1,3 +1,6 @@
+
+# build input for the neural network
+
 library(dplyr)
 library(ggplot2)
 library(reshape2)
@@ -112,7 +115,7 @@ library(zoo)
   BBDC = .bbdcout$yadj,
   WTI = .wtiout$yadj,
   PRE5Y = .preout$yadj,
-  VOL20D = adj_vol_series$value
+  VOL20D = .ibov$vol
 ))
 
 

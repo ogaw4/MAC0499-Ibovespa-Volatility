@@ -1,6 +1,6 @@
-# Unzip anual historical files obtained from 
+# Unzips anual historical files obtained from 
 # http://www.bmfbovespa.com.br/pt_br/servicos/market-data/historico/mercado-a-vista/cotacoes-historicas/
-# and insert some of the data into a influx database.
+# and reads the contents for updating the influxdb database
 
 ZIPS_DIRECTORY <- "."
 KEEP_UNZIPPED_FILE <- FALSE

@@ -1,3 +1,8 @@
+# downloads data from bmf-bovespa website
+
+# Note: Due to website changes these scripts might
+# not function correctly
+
 library(bizdays)
 library(utils)
 library(httr)

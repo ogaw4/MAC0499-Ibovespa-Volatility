@@ -1,3 +1,6 @@
+# Fitting a GARCH model to compare 
+# volatility forecasts
+
 library(fGarch)
 library(ggplot2)
 library(reshape2)

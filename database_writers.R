@@ -1,3 +1,5 @@
+# mutates and inserts data in the influxDB database
+
 library(influxdbr)
 
 dbName <- "DadosHistBMFBOVESPA"

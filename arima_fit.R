@@ -1,3 +1,6 @@
+# Fitting an ARIMA model to the volatility series for 
+# comparing forecasts
+
 library(forecast)
 library(moments)
 library(dplyr)

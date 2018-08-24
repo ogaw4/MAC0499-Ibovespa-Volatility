@@ -1,3 +1,6 @@
+# A series of graphs used for taking a look at the available series 
+# and choosing the inputs for the neural network. 
+
 library(dplyr)
 library(ggplot2)
 library(reshape2)
@@ -14,9 +17,9 @@ get_series_df <- function(ticker, measurement, key_field) {
   series <- influx_select(con, dbName, field_keys = "*", measurement = measurement, 
                           return_xts = F, simplifyList = T,
                           where = glue("{key_field} = '{ticker}'"))[[1]]
-  data.frame(ref_date = as.Date(series$time), return = as.numeric(series$returns), 
+  na.omit(data.frame(ref_date = as.Date(series$time), return = as.numeric(series$returns), 
              vol = as.numeric(series$vol20d), 
-             stringsAsFactors = F)
+             stringsAsFactors = F))
 }
 
 gen_graphs <- function(ticker, measurement, key_field, title_ticker) {
@@ -27,12 +30,12 @@ gen_graphs <- function(ticker, measurement, key_field, title_ticker) {
                     stringsAsFactors = F)
   retp <- ggplot(.df %>% filter(return != "") %>% mutate(return = as.numeric(return)), 
          aes(x = ref_date, y = return)) + geom_line() + 
-    ggtitle(paste('Log-retorno', title_ticker)) +
-    xlab("Data") + ylab("Log-retorno")
+    ggtitle(paste('Log-return', title_ticker)) +
+    xlab("Date") + ylab("Log-retorno")
   volp <-  ggplot(.df %>% filter(vol != "") %>% mutate(vol = as.numeric(vol) * sqrt(252) * 100), 
                   aes(x = ref_date, y = vol)) + geom_line() + 
-    ggtitle(paste('Volatilidade anualizada com janela móvel de 20 dias', title_ticker)) +
-    xlab("Data") + ylab("Vol. 20d (%)")
+    ggtitle(paste('Annualized moving 20d Volatility', title_ticker)) +
+    xlab("Date") + ylab("Vol. 20d (%)")
   list(retp = retp, volp = volp)
 }
 
@@ -41,11 +44,11 @@ petr_graphs <- gen_graphs("PETR4", "stocks", "neg_code", "Petrobrás - PETR4 (PN
 vale_graphs <- gen_graphs("VALE3", "stocks", "neg_code", "Vale - VALE3 (ON)")
 itub_graphs <- gen_graphs("ITUB4", "stocks", "neg_code", "Itaú - ITUB4 (PN)")
 bbdc_graphs <- gen_graphs("BBDC4", "stocks", "neg_code", "Bradesco - BBDC4 (PN)")
-boi_graphs <- gen_graphs("BOIDI-AV-R$", "indic", "indic_code", "Boi Gordo")
-dol_graphs <- gen_graphs("DOL-D1", "indic", "indic_code", "Dólar")
+boi_graphs <- gen_graphs("BOIDI-AV-R$", "indic", "indic_code", "Live Cattle")
+dol_graphs <- gen_graphs("DOL-D1", "indic", "indic_code", "Dollar")
 eur_graphs <- gen_graphs("EUR", "indic", "indic_code", "Euro")
-soy_graphs <- gen_graphs("SOY-PA-US$", "indic", "indic_code", "Soja")
-caf_graphs <- gen_graphs("ACF-SA", "indic", "indic_code", "Café")
+soy_graphs <- gen_graphs("SOY-PA-US$", "indic", "indic_code", "Soy")
+caf_graphs <- gen_graphs("ACF-SA", "indic", "indic_code", "Coffee")
 
 
 
@@ -89,7 +92,7 @@ common_dates <- base::intersect(ibov_df$ref_date, boi_df$ref_date) %>%
 .bbdc <- bbdc_df %>% filter(ref_date %in% common_dates)
 
 
-.rets <- na.omit(data.frame(
+.rets <- data.frame(
   IBOV = .ibov$return, 
   BOI = .boi$return,
   DOL = .dol$return,
@@ -104,9 +107,9 @@ common_dates <- base::intersect(ibov_df$ref_date, boi_df$ref_date) %>%
   VALE = .vale$return,
   ITUB = .itub$return,
   BBDC = .bbdc$return
-))
+)
 
-row.names(.rets) <- .ibov$ref_date[-1]
+row.names(.rets) <- .ibov$ref_date
 
 gjrg <- ugarchspec(mean.model = list(armaOrder=c(0, 0)), 
                    variance.model = list(model = "gjrGARCH"),
@@ -136,15 +139,15 @@ corr_df <- lapply(1:ncol(.rets), function(i) {
 
 corr_df <- do.call(rbind, corr_df)
 
-.df <- corr_df %>% filter(grepl("PETR X ", src))
+.df <- corr_df %>% filter(grepl("IBOV X ", src))
 
 ggplot(.df, aes(x = ref_date, y = value, color = src)) +
   geom_line(size = 0.8) +
   ggrepel::geom_label_repel(data = .df %>% filter(ref_date == max(.df$ref_date)), 
             aes(label = src, colour = src, x = max(.df$ref_date), y = value, 
                 hjust = -.1)) + 
-  ggtitle("Correlação condicional ao longo do tempo") +
-  xlab("Data") + ylab("Correlação") + labs(colour = "Séries")
+  ggtitle("Conditional correlation over time") +
+  xlab("Date") + ylab("Correlation") + labs(colour = "Series")
 
 
 
@@ -156,7 +159,7 @@ ibov_df <- get_series_df("IBV-PF", "indic", "indic_code")
 dol_df <- get_series_df("DOL-D1", "indic", "indic_code")
 petr_df <- get_series_df("PETR4", "stocks", "neg_code")
 vale_df <- get_series_df("VALE3", "stocks", "neg_code")
-itub_df <- get_series_df("ITUB4", "stocks", "neg_code")
+# itub_df <- get_series_df("ITUB4", "stocks", "neg_code")
 bbdc_df <- get_series_df("BBDC4", "stocks", "neg_code")
 wti_df <- get_series_df("WTI", "indic", "indic_code")
 pre1y_df <- get_series_df("PRE1Y", "interest_rate", "variable")
@@ -174,7 +177,7 @@ common_dates <- base::intersect(ibov_df$ref_date, dol_df$ref_date) %>%
 .dol <- dol_df %>% filter(ref_date %in% common_dates)
 .petr <- petr_df %>% filter(ref_date %in% common_dates)
 .vale <- vale_df %>% filter(ref_date %in% common_dates)
-.itub <- itub_df %>% filter(ref_date %in% common_dates)
+# .itub <- itub_df %>% filter(ref_date %in% common_dates)
 .bbdc <- bbdc_df %>% filter(ref_date %in% common_dates)
 .wti <- wti_df %>% filter(ref_date %in% common_dates)
 .pre1y <- pre1y_df %>% filter(ref_date %in% common_dates) 
@@ -186,7 +189,7 @@ common_dates <- base::intersect(ibov_df$ref_date, dol_df$ref_date) %>%
   DOL = .dol$return,
   PETR = .petr$return,
   VALE = .vale$return,
-  ITUB = .itub$return,
+  # ITUB = .itub$return,
   BBDC = .bbdc$return,
   WTI = .wti$return,
   PRE1Y = .pre1y$return,
@@ -194,7 +197,7 @@ common_dates <- base::intersect(ibov_df$ref_date, dol_df$ref_date) %>%
   PRE5Y = .pre5y$return
 ))
 
-row.names(.rets) <- .ibov$ref_date[-1]
+row.names(.rets) <- .ibov$ref_date
 
 gjrg <- ugarchspec(mean.model = list(armaOrder=c(0, 0)), 
                    variance.model = list(model = "gjrGARCH"),
@@ -231,6 +234,6 @@ ggplot(.df, aes(x = ref_date, y = value, color = src)) +
   ggrepel::geom_label_repel(data = .df %>% filter(ref_date == max(.df$ref_date)), 
                             aes(label = src, colour = src, x = max(.df$ref_date), y = value, 
                                 hjust = -.1)) + 
-  ggtitle("Correlação condicional ao longo do tempo") +
-  xlab("Data") + ylab("Correlação") + labs(colour = "Séries")
+  ggtitle("Conditional correlation over time") +
+  xlab("Date") + ylab("Correlation") + labs(colour = "Series")
 

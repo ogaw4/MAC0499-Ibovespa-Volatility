@@ -1,10 +1,12 @@
+# Graph neural network results
+
 library(dplyr)
 library(ggplot2)
 library(reshape2)
 library(glue)
 
-dset_path <- "data/input_vol5d.csv"
-res_path <- "data/results5dv2.csv"
+dset_path <- "../data/input_vol10d.csv"
+res_path <- "../data/results10d.csv"
 
 train_max_idx <- 2064
 valid_max_idx <- 2305
@@ -28,13 +30,13 @@ res$DATE <- dset$DATE
 
 
 ggplot(.df, aes(x = ref_date, y = value, colour = label)) + geom_line(size = 1) +
-  ggtitle("D+5 IBOVESPA Volatility")
+  ggtitle("D+10 IBOVESPA Volatility")
 
 
 res$pred[1:valid_max_idx] <- NA
 
 .df <- data.frame(ref_date = c(dset$DATE, res$DATE),
-                  value = c(dset$VOL20D5P, res$pred),
+                  value = c(dset$VOL20D10P, res$pred),
                   label = c(dset$lab, res$lab))
-ggplot(.df %>% filter(ref_date >= "2015-01-01"), aes(x = ref_date, y = value, colour = label)) + geom_line(size = 1) +
-  ggtitle("D+5 IBOVESPA Volatility (Zoomed in)")
+ggplot(.df %>% dplyr::filter(ref_date >= "2017-01-01"), aes(x = ref_date, y = value, colour = label)) + geom_line(size = 1) +
+  ggtitle("D+5 IBOVESPA Volatility (Zoomed to 2018)")
