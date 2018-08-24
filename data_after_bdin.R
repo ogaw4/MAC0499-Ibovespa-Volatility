@@ -8,12 +8,12 @@ library(dplyr)
 source("scripts/inserters.R")
 
 bizdays.options$set(default.calendar = "Brazil/ANBIMA")
-todos_dias <- list.files("raw_data", recursive = F)
+todos_dias <- list.files("../raw_data", recursive = F)
 dias_bdfinal <- todos_dias[todos_dias <= "2017-08-01"]
-dias_bvbg <- todos_dias[todos_dias > "2017-08-01"]
-dest_dir <- "raw_data"
+dias_bvbg <- todos_dias[todos_dias > "2018-02-20" & todos_dias <= "2018-06-01"]
+dest_dir <- "../raw_data"
 
-interest_df <- lapply(bizdays::bizseq("2008-01-01", "2018-06-01"), function(rd) {
+interest_df <- lapply(bizdays::bizseq("2018-02-20", "2018-06-01"), function(rd) {
   d_dir <- file.path(dest_dir, as.character(rd))
   tryCatch ( {read_curve(d_dir, rd)}, 
              error = function(e) { 
@@ -23,7 +23,7 @@ interest_df <- lapply(bizdays::bizseq("2008-01-01", "2018-06-01"), function(rd) 
 
 interest_df <- do.call(rbind, interest_df)
 
-indic_df <- lapply(todos_dias, function(rd) {
+indic_df <- lapply(dias_bvbg, function(rd) {
   d_dir <- file.path(dest_dir, rd)
   read_indic(d_dir, rd)
 })

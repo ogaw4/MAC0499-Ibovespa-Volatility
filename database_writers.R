@@ -7,11 +7,11 @@ con <- influx_connection()
 create_database(con, dbName)
 
 
-wti_df <- readxl::read_excel("wti_series", sheet = "Data 1", skip = 3)
+wti_df <- readxl::read_excel("wti_series.xls", sheet = "Data 1", skip = 3)
 
 names(wti_df) <- c("ref_date", "value")
 
-wti_df <- wti_df %>% mutate(ref_date = as.Date(ref_date), indic_group = "RT", indic_code = "WTI") %>% filter(ref_date >= '2008-01-02', ref_date <= '2018-03-29')
+wti_df <- wti_df %>% mutate(ref_date = as.Date(ref_date), indic_group = "RT", indic_code = "WTI") %>% filter(ref_date >= '2018-02-20', ref_date <= '2018-06-01')
 rets <- diff(log(wti_df$value))
 vol <-  c(rep(NA, 20), zoo::rollapply(rets, 20, sd))
 wti_df$returns <- c(NA, rets)
@@ -19,6 +19,7 @@ wti_df$vol20d <- vol
 wti_df[is.na(wti_df)] <- ""
 
 
+interest_df <- melt(interest_df, id.vars = "ref_date")
 
 
 interest_df <- lapply(unique(interest_df$variable), function(cod) {
@@ -120,7 +121,7 @@ res <- lapply(seq(1, nrow(interest_df), by = step), function(row) {
 })
 
 
-
+indic_df$ref_date <- as.POSIXct(indic_df$ref_date) + lubridate::hours(3)
 step <- floor(nrow(indic_df)/176)
 res <- lapply(seq(1, nrow(indic_df), by = step), function(row) {
   influx_write(x = indic_df[row:(row + step), ] %>% filter(!is.na(ref_date)), con = con, db = dbName, time_col = c("ref_date"), 
@@ -147,6 +148,7 @@ influx_write(x = futs_df[row:(row + step), ] %>% filter(!is.na(ref_date)), con =
 })
 
 step <- 3500
+historical_stocks$ref_date <- as.POSIXct(historical_stocks$ref_date) + lubridate::hours(3)
 res <- lapply(seq(1, nrow(historical_stocks), by = step), function(row) {
 influx_write(x = historical_stocks[row:(row + step) , ] %>% filter(!is.na(ref_date)), con = con, db = dbName, time_col = c("ref_date"), 
              measurement = "stocks", 

@@ -88,3 +88,31 @@ write.csv(na.omit(.in21d[,-1]), file = "input_vol21d.csv", row.names = F)
 
 
 
+# outlier filtering
+
+library(tsoutliers)
+library(zoo)
+
+.ibovout <- tso(ts(zoo(.ibov$return, order.by=as.Date(.ibov$ref_date))))
+.dolout <- tso(ts(zoo(.dol$return, order.by=as.Date(.dol$ref_date))))
+.petrout <- tso(ts(zoo(.petr$return, order.by=as.Date(.petr$ref_date))))
+.valeout <- tso(ts(zoo(.vale$return, order.by=as.Date(.vale$ref_date))))
+.bbdcout <- tso(ts(zoo(.bbdc$return, order.by=as.Date(.bbdc$ref_date))))
+.wtiout <- tso(ts(zoo(.wti$return, order.by=as.Date(.wti$ref_date))))
+.preout <- tso(ts(zoo(.pre5y$return, order.by=as.Date(.pre5y$ref_date))))
+
+
+.in_filt <- na.omit(data.frame(
+  DATE = .ibov$ref_date,
+  IBOV = .ibovout$yadj, 
+  DOL = .dolout$yadj,
+  PETR = .petrout$yadj,
+  VALE = .valeout$yadj,
+  # ITUB = .itub$return,
+  BBDC = .bbdcout$yadj,
+  WTI = .wtiout$yadj,
+  PRE5Y = .preout$yadj,
+  VOL20D = adj_vol_series$value
+))
+
+
