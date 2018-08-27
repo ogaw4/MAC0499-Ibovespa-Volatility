@@ -43,10 +43,12 @@ print("loading raw data for predicting " + str(N) + " days")
 if (args.cleaned):
   print("using cleaned series")
   raw_file = "../input_files/input_vol" + str(N) + "d_clean.csv"
-  state_file = "lstm_state_" + str(N) + "d_clean.pkl"
+  state_file = "lstm_state_" + str(N) + "d_clean"
+  answer_file = "results_" + str(N) + "d_clean.csv"
 else:
   raw_file = "../input_files/input_vol" + str(N) + "d.csv"
-  state_file = "lstm_state_" + str(N) + "d.pkl"
+  state_file = "lstm_state_" + str(N) + "d"
+  answer_file = "results_" + str(N) + "d.csv"
 
 
 raw_data = np.loadtxt(open(raw_file, "rb"), delimiter = ",", skiprows = 1)
@@ -56,53 +58,20 @@ raw_data = np.loadtxt(open(raw_file, "rb"), delimiter = ",", skiprows = 1)
 # Train: 1 ~ (nrows - 160)  (the rest of sample)
 
 test_start = len(raw_data) - 30
-validation_start = len(raw_data) - 160
-
-raw_x = raw_data[:(validation_start - 1), :-1]
-raw_y = raw_data[:(validation_start - 1), -1]
-
-raw_x_valid = raw_data[validation_start:(test_start - 1), :-1]
-raw_y_valid = raw_data[validation_start:(test_start - 1), -1]
-
-print(" Raw x shape")
-print(" " + str(raw_x.shape))
-
-print(" Raw y shape")
-print(" " + str(raw_y.shape))
-
-print(" Raw x valid shape")
-print(" " + str(raw_x_valid.shape))
-
-print(" Raw y valid shape")
-print(" " + str(raw_y_valid.shape))
-
-#train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8))
-#train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1))
-
-#valid_x = torch.from_numpy(raw_x_valid.reshape(-1, 1, 8))
-#valid_y = torch.from_numpy(raw_y_valid.reshape(-1, 1, 1))
-
-
-print("pred test shape is " + str(pred_test.shape))
-
-with open('results.csv', "w") as file:
-    file.write("pred\n")
-    for i in range(pred_test.shape[0]):
-        file.write("{}\n".format(pred_test[i]))
-    
-
 
 raw_x_test = raw_data[:, :-1]
 
-with open('results.csv', "w") as file:
+print("Running predictions from index " + str(test_start) + " to end of file")
+
+with open(answer_file, "w") as file:
   file.write("pred\n")
   for i in range(test_start, len(raw_data)):
     x_test = raw_x_test[:(i + 1), ]
     test_x = torch.from_numpy(x_test.reshape(-1, 1, 8))
     model = LSTM(8, 16).double()
-    model.load_state_dict(torch.load(state_file))
+    model.load_state_dict(torch.load(state_file + "_" + str(i) + ".pkl"))
     model = model.eval()
     pred_test = model(test_x).view(-1).data.numpy()
-    file.write("{}\n",format(pred_test[-1]))
+    file.write("{}\n".format(pred_test[-1]))
 
 
