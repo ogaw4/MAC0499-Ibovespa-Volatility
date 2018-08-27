@@ -31,7 +31,7 @@ gen_graphs <- function(ticker, measurement, key_field, title_ticker) {
   retp <- ggplot(.df %>% filter(return != "") %>% mutate(return = as.numeric(return)), 
          aes(x = ref_date, y = return)) + geom_line() + 
     ggtitle(paste('Log-return', title_ticker)) +
-    xlab("Date") + ylab("Log-retorno")
+    xlab("Date") + ylab("Log-return")
   volp <-  ggplot(.df %>% filter(vol != "") %>% mutate(vol = as.numeric(vol) * sqrt(252) * 100), 
                   aes(x = ref_date, y = vol)) + geom_line() + 
     ggtitle(paste('Annualized moving 20d Volatility', title_ticker)) +
@@ -98,7 +98,7 @@ common_dates <- base::intersect(ibov_df$ref_date, boi_df$ref_date) %>%
   DOL = .dol$return,
   EUR = .eur$return,
   SOY = .soy$return, 
-  ACF = .caf$return,
+  ICF = .caf$return,
   WTI = .wti$return,
   PRE1Y = .pre1y$return,
   PRE3Y = .pre3y$return,
@@ -192,8 +192,6 @@ common_dates <- base::intersect(ibov_df$ref_date, dol_df$ref_date) %>%
   # ITUB = .itub$return,
   BBDC = .bbdc$return,
   WTI = .wti$return,
-  PRE1Y = .pre1y$return,
-  PRE3Y = .pre3y$return,
   PRE5Y = .pre5y$return
 ))
 
