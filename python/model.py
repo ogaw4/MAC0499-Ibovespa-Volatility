@@ -30,7 +30,7 @@ class LSTM(nn.Module):
 
 
 
-def train_model(model, train_x, train_y, valid_x, valid_y, state_path = "lstm_state.pkl", epochs = 1000):
+def train_model(model, train_x, train_y, valid_x, valid_y, state_path = "lstm_state.pkl", epochs = 500):
   """
   Train a model for financial data
   """
@@ -106,14 +106,14 @@ print(" " + str(raw_x_valid.shape))
 print(" Raw y valid shape")
 print(" " + str(raw_y_valid.shape))
 
-train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8))
-train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1))
+train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8)).cuda()
+train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1)).cuda()
 
-valid_x = torch.from_numpy(raw_x_valid.reshape(-1, 1, 8))
-valid_y = torch.from_numpy(raw_y_valid.reshape(-1, 1, 1))
+valid_x = torch.from_numpy(raw_x_valid.reshape(-1, 1, 8)).cuda()
+valid_y = torch.from_numpy(raw_y_valid.reshape(-1, 1, 1)).cuda()
 
 
-model = LSTM(8, 16).double()
+model = LSTM(8, 16).double().cuda()
 
 print("starting training")
 t_loss, v_loss = train_model(model, train_x, train_y, valid_x, valid_y, state_file)
