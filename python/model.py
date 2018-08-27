@@ -59,32 +59,40 @@ def train_model(model, train_x, train_y, valid_x, valid_y, state_path = "lstm_st
   return train_loss, valid_loss
 
 
-
 parser = argparse.ArgumentParser(description='Run the thing.')
 parser.add_argument('time', metavar='N', type=int, nargs='+',
                    help='prediction lag, 1, 5, 10 or 21')
+parser.add_argument('--cleaned', dest='cleaned', action='store_true')
+parser.set_defaults(cleaned=False)
 
 args = parser.parse_args()
 N = args.time[0]
 
 print("loading raw data for predicting " + str(N) + " days")
 
-raw_file = "input_vol" + str(N) + "d.csv"
+if (args.cleaned):
+  print("using cleaned series")
+  raw_file = "../input_files/input_vol" + str(N) + "d_clean.csv"
+  state_file = "lstm_state_" + str(N) + "d_clean.pkl"
+else:
+  raw_file = "../input_files/input_vol" + str(N) + "d.csv"
+  state_file = "lstm_state_" + str(N) + "d.pkl"
+
 
 raw_data = np.loadtxt(open(raw_file, "rb"), delimiter = ",", skiprows = 1)
 
-# Test: 2306 ~ end (2017-08-16 ~ 2018-03-29)
-# Validation: 2065 ~ 2305 (2016-08-15 ~ 2017-08-15)
-# Train: 1 ~ 2064 (2008-01-31 ~ 2016-08-12)
+# Test: (nrows - 30) ~ end (last 30 days of sample)
+# Validation: (nrows - 160) ~ (nrows - 30) (around 6 months of validation)
+# Train: 1 ~ (nrows - 160)  (the rest of sample)
 
-raw_x = raw_data[:2064, :-1]
-raw_y = raw_data[:2064, -1]
+test_start = len(raw_data) - 30
+validation_start = len(raw_data) - 160
 
-raw_x_valid = raw_data[2065:2305, :-1]
-raw_y_valid = raw_data[2065:2305, -1]
+raw_x = raw_data[:(validation_start - 1), :-1]
+raw_y = raw_data[:(validation_start - 1), -1]
 
-raw_x_test = raw_data[:, :-1]
-raw_y_test = raw_data[:, -1]
+raw_x_valid = raw_data[validation_start:(test_start - 1), :-1]
+raw_y_valid = raw_data[validation_start:(test_start - 1), -1]
 
 print(" Raw x shape")
 print(" " + str(raw_x.shape))
@@ -98,30 +106,14 @@ print(" " + str(raw_x_valid.shape))
 print(" Raw y valid shape")
 print(" " + str(raw_y_valid.shape))
 
-print(" Raw x test shape")
-print(" " + str(raw_x_test.shape))
-
 train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8))
 train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1))
 
 valid_x = torch.from_numpy(raw_x_valid.reshape(-1, 1, 8))
 valid_y = torch.from_numpy(raw_y_valid.reshape(-1, 1, 1))
 
-test_x = torch.from_numpy(raw_x_test.reshape(-1, 1, 8))
 
 model = LSTM(8, 16).double()
 
 print("starting training")
-t_loss, v_loss = train_model(model, train_x, train_y, valid_x, valid_y)
-
-print("loading best valid loss")
-model.load_state_dict(torch.load("lstm_state.pkl"))
-model = model.eval() 
-pred_test = model(test_x).view(-1).data.numpy()
-
-print("pred test shape is " + str(pred_test.shape))
-
-with open('results.csv', "w") as file:
-    file.write("pred\n")
-    for i in range(pred_test.shape[0]):
-        file.write("{}\n".format(pred_test[i]))
+t_loss, v_loss = train_model(model, train_x, train_y, valid_x, valid_y, state_file)

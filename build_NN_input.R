@@ -78,16 +78,16 @@ write.csv(.in21d, file = "input_vol21d.csv", row.names = F)
 
 
 .in1d <- .in %>% mutate(VOL20D1P = c(VOL20D[2:length(VOL20D)], NA))
-write.csv(na.omit(.in1d[,-1]), file = "input_vol1d.csv", row.names = F)
+write.csv(na.omit(.in1d[,-1]), file = "input_vol1d_other.csv", row.names = F)
 
 .in5d <- .in %>% mutate(VOL20D5P = c(VOL20D[6:length(VOL20D)], rep(NA, 5)))
-write.csv(na.omit(.in5d[,-1]), file = "input_vol5d.csv", row.names = F)
+write.csv(na.omit(.in5d[,-1]), file = "input_vol5d_other.csv", row.names = F)
 
 .in10d <- .in %>% mutate(VOL20D10P = c(VOL20D[11:length(VOL20D)], rep(NA, 10)))
-write.csv(na.omit(.in10d[,-1]), file = "input_vol10d.csv", row.names = F)
+write.csv(na.omit(.in10d[,-1]), file = "input_vol10d_other.csv", row.names = F)
 
 .in21d <- .in %>% mutate(VOL20D21P = c(VOL20D[22:length(VOL20D)], rep(NA, 21)))
-write.csv(na.omit(.in21d[,-1]), file = "input_vol21d.csv", row.names = F)
+write.csv(na.omit(.in21d[,-1]), file = "input_vol21d_other.csv", row.names = F)
 
 
 
@@ -118,4 +118,15 @@ library(zoo)
   VOL20D = .ibov$vol
 ))
 
+.in1d <- .in_filt %>% mutate(VOL20D1P = c(VOL20D[2:length(VOL20D)], NA))
+write.csv(.in1d, file = "input_vol1d_clean.csv", row.names = F)
 
+
+.in5d <- .in_filt %>% mutate(VOL20D5P = c(VOL20D[6:length(VOL20D)], rep(NA, 5)))
+write.csv(.in5d, file = "input_vol5d_clean.csv", row.names = F)
+
+.in10d <- .in_filt %>% mutate(VOL20D10P = c(VOL20D[11:length(VOL20D)], rep(NA, 10)))
+write.csv(.in10d, file = "input_vol10d_clean.csv", row.names = F)
+
+.in21d <- .in_filt %>% mutate(VOL20D21P = c(VOL20D[22:length(VOL20D)], rep(NA, 21)))
+write.csv(.in21d, file = "input_vol21d_clean.csv", row.names = F)
