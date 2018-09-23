@@ -30,7 +30,7 @@ class LSTM(nn.Module):
 
 
 
-def train_model(model, train_x, train_y, valid_x, valid_y, state_path = "lstm_state.pkl", epochs = 1000):
+def train_model(model, train_x, train_y, valid_x, valid_y, state_path = "lstm_state.pkl", epochs = 2000):
   """
   Train a model for financial data
   """
@@ -85,41 +85,42 @@ raw_data = np.loadtxt(open(raw_file, "rb"), delimiter = ",", skiprows = 1)
 # Validation: (nrows - 562) ~ (nrows - 60) (around two years of validation)
 # Train: 1 ~ (nrows - 562)  (the rest of sample)
 
-test_start = len(raw_data) - 60
-validation_start = len(raw_data) - 562
+for i in range(60):
+  test_start = len(raw_data) - 60 + i
+  validation_start = len(raw_data) - 562 + i
 
-raw_x = raw_data[:(validation_start - 1), :-1]
-raw_y = raw_data[:(validation_start - 1), -1]
+  raw_x = raw_data[:(validation_start - 1), :-1]
+  raw_y = raw_data[:(validation_start - 1), -1]
 
-raw_x_valid = raw_data[validation_start:(test_start - 1), :-1]
-raw_y_valid = raw_data[validation_start:(test_start - 1), -1]
+  raw_x_valid = raw_data[validation_start:(test_start - 1), :-1]
+  raw_y_valid = raw_data[validation_start:(test_start - 1), -1]
 
-print(" Raw x shape")
-print(" " + str(raw_x.shape))
+  print(" Raw x shape")
+  print(" " + str(raw_x.shape))
 
-print(" Raw y shape")
-print(" " + str(raw_y.shape))
+  print(" Raw y shape")
+  print(" " + str(raw_y.shape))
 
-print(" Raw x valid shape")
-print(" " + str(raw_x_valid.shape))
+  print(" Raw x valid shape")
+  print(" " + str(raw_x_valid.shape))
 
-print(" Raw y valid shape")
-print(" " + str(raw_y_valid.shape))
+  print(" Raw y valid shape")
+  print(" " + str(raw_y_valid.shape))
 
-train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8)).cuda()
-train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1)).cuda()
+  train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8)).cuda()
+  train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1)).cuda()
 
-valid_x = torch.from_numpy(raw_x_valid.reshape(-1, 1, 8)).cuda()
-valid_y = torch.from_numpy(raw_y_valid.reshape(-1, 1, 1)).cuda()
+  valid_x = torch.from_numpy(raw_x_valid.reshape(-1, 1, 8)).cuda()
+  valid_y = torch.from_numpy(raw_y_valid.reshape(-1, 1, 1)).cuda()
 
 
-model = LSTM(8, 16).double().cuda()
-print("starting training ")
-t_loss, v_loss = train_model(model, train_x, train_y, valid_x, valid_y, state_file + "_" + str(test_start) + ".pkl")
+  model = LSTM(8, 16).double().cuda()
+  print("starting training " + str(i))
+  t_loss, v_loss = train_model(model, train_x, train_y, valid_x, valid_y, state_file + "_" + str(test_start) + ".pkl")
 
-del model
-del train_x
-del train_y
-del valid_x
-del valid_y
-torch.cuda.empty_cache()
+  del model
+  del train_x
+  del train_y
+  del valid_x
+  del valid_y
+  torch.cuda.empty_cache()

@@ -96,60 +96,6 @@ class decoder_RNN(nn.Module):
     return prediction
 
 
-
-def train_model(encoder, decoder, train_x, train_y, T, features,
- enc_state_path = "encoder_state.pkl", dec_state_path = "decoder_state.pkl", epochs = 500):
-  """
-  Train a DA-RNN model
-  """
-
-  best_loss = float("inf")
-  criterion = nn.SmoothL1Loss()
-  optimizer_enc = torch.optim.Adam(encoder.parameters(), lr = 1e-2)
-  optimizer_dec = torch.optim.Adam(decoder.parameters(), lr = 1e-2)
-  tsteps = int(train_x.shape[0] * 0.7)
-
-  for epoch in range(epochs):
-
-    idxs = np.array(range(tsteps - T))
-
-    idx = 0
-    losses = []
-
-    while (idx < tsteps):
-      train_idxs = idxs[idx:(idx + 128)]
-      tx = np.zeros((len(train_idxs), T - 1, features))
-      ty = np.zeros((len(train_idxs), T - 1))
-
-      for i in range(len(train_idxs)):
-        tx[i, :, :] = train_x[train_idxs[i]:(train_idxs[i] + T - 1), :]
-        ty[i, :] = train_y[train_idxs[i]:(train_idxs[i] + T - 1)]
-
-      tx_tensor = Variable(torch.from_numpy(tx)).cuda()
-      ty_tensor = Variable(torch.from_numpy(ty)).cuda()
-      target_y = Variable(torch.from_numpy(train_y[train_idxs + T])).cuda()
-      target_y = target_y.view(-1, 1)
-
-      weighted, encoded = encoder(tx_tensor)
-      pred = decoder(encoded, ty_tensor)
-      loss = criterion(pred, target_y)
-      losses.append(float(loss))
-
-      optimizer_enc.zero_grad()
-      optimizer_dec.zero_grad()
-      loss.backward()
-      optimizer_enc.step()
-      optimizer_dec.step()
-      idx += 128
-
-    if (np.mean(losses) < best_loss):
-      msg = "\ntrain_loss = {:.8f} | epoch = {:.1f}\n".format(np.mean(losses), float(epoch))
-      torch.save(encoder.state_dict(), enc_state_path)
-      torch.save(decoder.state_dict(), dec_state_path)
-      best_loss = np.mean(losses)
-      print(msg, end="")
-
-
 parser = argparse.ArgumentParser(description='Run the thing.')
 parser.add_argument('time', metavar='N', type=int, nargs='+',
                    help='prediction lag, 1, 5, 10 or 21')
@@ -166,36 +112,57 @@ if (args.cleaned):
   raw_file = "../input_files/input_vol" + str(N) + "d_clean.csv"
   enc_state_file = "enc_state_" + str(N) + "d_clean.pkl"
   dec_state_file = "dec_state_" + str(N) + "d_clean.pkl"
+  answer_file = "da_results_" + str(N) + "d_clean.csv"
 else:
   raw_file = "../input_files/input_vol" + str(N) + "d.csv"
   dec_state_file = "dec_state_" + str(N) + "d.pkl"
   enc_state_file = "enc_state_" + str(N) + "d.pkl"
+  answer_file = "da_results_" + str(N) + "d.csv"
 
 
 raw_data = np.loadtxt(open(raw_file, "rb"), delimiter = ",", skiprows = 1)
 
 # Test: (nrows - 60) ~ end (last 60 days of sample)
-# Train: 1 ~ (nrows - 60)  (the rest of sample)
 
-test_start = len(raw_data) - 60 
+test_start = len(raw_data) - 60
 
-raw_x = raw_data[:(test_start - 1), :-1]
-raw_y = raw_data[:(test_start - 1), -1]
+raw_x_test = raw_data[:, :-1]
+raw_y_test = raw_data[:, -1]
 
-print(" Raw x shape")
-print(" " + str(raw_x.shape))
+print("Running predictions from index " + str(test_start) + " to end of file")
 
-print(" Raw y shape")
-print(" " + str(raw_y.shape))
+with open(answer_file, "w") as file:
+  file.write("pred\n")
+  for i in range(test_start, len(raw_data)):
+    x_test = raw_x_test[:(i + 1), ]
+    y_test = raw_y_test[:(i + 1), ]
+    
+    encoder = encoder_RNN(8, 32, 10).double()
+    decoder = decoder_RNN(32, 32, 10).double()
+    encoder.load_state_dict(torch.load(enc_state_file))
+    decoder.load_state_dict(torch.load(dec_state_file))
+    encoder = encoder.eval()
+    decoder = decoder.eval()
 
-train_x = torch.from_numpy(raw_x.reshape(-1, 1, 8)).cuda()
-train_y = torch.from_numpy(raw_y.reshape(-1, 1, 1)).cuda()
+    tsteps = int(x_test.shape[0] * 0.7)
+    y = np.zeros(x_test.shape[0] - tsteps)
 
-encoder = encoder_RNN(8, 32, 10).double().cuda()
-decoder = decoder_RNN(32, 32, 10).double().cuda()
-print("starting training ")
-train_model(encoder, decoder, raw_x, raw_y, 10, 8, enc_state_file, dec_state_file)
+    i = 0
 
-del encoder
-del decoder
-torch.cuda.empty_cache()
+    while (i < len(y)):
+      idxs = np.array(range(len(y)))[i:(i + 128)]
+      x = np.zeros((len(idxs), 9, x_test.shape[1]))
+      yh = np.zeros((len(idxs), 9))
+
+      for j in range(len(idxs)):
+        x[j, :, :] = x_test[range(idxs[j] + tsteps - 10, idxs[j] + tsteps - 1), :]
+        yh[j, :] = y_test[range(idxs[j] + tsteps - 10, idxs[j] + tsteps - 1)]
+
+      yh = Variable(torch.from_numpy(yh))
+      _, encoded = encoder(Variable(torch.from_numpy(x)))
+      y[i:(i + 128)] = decoder(encoded, yh).data.numpy()[:, 0]
+      i += 128
+
+    file.write("{}\n".format(y[-1]))
+
+

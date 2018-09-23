@@ -57,7 +57,7 @@ raw_data = np.loadtxt(open(raw_file, "rb"), delimiter = ",", skiprows = 1)
 # Validation: (nrows - 160) ~ (nrows - 30) (around 6 months of validation)
 # Train: 1 ~ (nrows - 160)  (the rest of sample)
 
-test_start = len(raw_data) - 30
+test_start = len(raw_data) - 60
 
 raw_x_test = raw_data[:, :-1]
 
@@ -69,7 +69,7 @@ with open(answer_file, "w") as file:
     x_test = raw_x_test[:(i + 1), ]
     test_x = torch.from_numpy(x_test.reshape(-1, 1, 8))
     model = LSTM(8, 16).double()
-    model.load_state_dict(torch.load(state_file + "_" + str(i) + ".pkl"))
+    model.load_state_dict(torch.load(state_file + "_2411.pkl"))
     model = model.eval()
     pred_test = model(test_x).view(-1).data.numpy()
     file.write("{}\n".format(pred_test[-1]))
