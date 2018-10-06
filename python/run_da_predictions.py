@@ -134,8 +134,53 @@ print("Running predictions from index " + str(test_start) + " to end of file")
 with open(answer_file, "w") as file:
   file.write("pred\n")
   for i in range(test_start, len(raw_data)):
+
+    # Values for the last N days are needed 
+    # to predict the current date, since the 
+    # target series uses lagged values the 
+    # real values until D-N aren't available 
+    # for decoder input, meaning each prediction will
+    # carry into it N predictions
+
+    print("Running prediction for index " + str(i))
+
+    j = N - 1
+    curr_index = i - N 
+    available_y = raw_y_test[:curr_index, ]
+
+    while j > 0:
+      x_test = raw_x_test[:curr_index, ]
+      encoder = encoder_RNN(8, 32, 10).double()
+      decoder = decoder_RNN(32, 32, 10).double()
+      encoder.load_state_dict(torch.load(enc_state_file))
+      decoder.load_state_dict(torch.load(dec_state_file))
+      encoder = encoder.eval()
+      decoder = decoder.eval()
+      tsteps = int(x_test.shape[0] * 0.7)
+      y = np.zeros(x_test.shape[0] - tsteps)
+
+      k = 0
+      while (k < len(y)):
+        idxs = np.array(range(len(y)))[k:(k + 128)]
+        x = np.zeros((len(idxs), 9, x_test.shape[1]))
+        yh = np.zeros((len(idxs), 9))
+
+        for l in range(len(idxs)):
+          x[l, :, :] = x_test[range(idxs[l] + tsteps - 10, idxs[l] + tsteps - 1), :]
+          yh[l, :] = available_y[range(idxs[l] + tsteps - 10, idxs[l] + tsteps - 1)]
+
+        yh = Variable(torch.from_numpy(yh))
+        _, encoded = encoder(Variable(torch.from_numpy(x)))
+        y[k:(k + 128)] = decoder(encoded, yh).data.numpy()[:, 0]
+        k += 128
+
+      curr_index += 1      
+      available_y = np.append(available_y, np.expand_dims(y[-1], axis = 1), axis=0)
+      j -= 1
+
+
     x_test = raw_x_test[:(i + 1), ]
-    y_test = raw_y_test[:(i + 1), ]
+    y_test = available_y
     
     encoder = encoder_RNN(8, 32, 10).double()
     decoder = decoder_RNN(32, 32, 10).double()
@@ -147,10 +192,10 @@ with open(answer_file, "w") as file:
     tsteps = int(x_test.shape[0] * 0.7)
     y = np.zeros(x_test.shape[0] - tsteps)
 
-    i = 0
+    k = 0
 
-    while (i < len(y)):
-      idxs = np.array(range(len(y)))[i:(i + 128)]
+    while (k < len(y)):
+      idxs = np.array(range(len(y)))[k:(k + 128)]
       x = np.zeros((len(idxs), 9, x_test.shape[1]))
       yh = np.zeros((len(idxs), 9))
 
@@ -160,8 +205,8 @@ with open(answer_file, "w") as file:
 
       yh = Variable(torch.from_numpy(yh))
       _, encoded = encoder(Variable(torch.from_numpy(x)))
-      y[i:(i + 128)] = decoder(encoded, yh).data.numpy()[:, 0]
-      i += 128
+      y[k:(k + 128)] = decoder(encoded, yh).data.numpy()[:, 0]
+      k += 128
 
     file.write("{}\n".format(y[-1]))
 
