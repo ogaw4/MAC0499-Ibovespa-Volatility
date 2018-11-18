@@ -1,4 +1,7 @@
-# MAC0499-Ibovespa-Volatility
+# IBOVESPA volatility forecasting with neural networks
 
-Scripts and code used for bsc thesis on using neural networks for index volatility prediction, more information in https://www.linux.ime.usp.br/~ogawa/mac0499/index_en.html.
-Code isn't particularly well organized nor well documented but can be used for reproducing the results or working on something similar. 
+Repository for a bsc thesis on forecasting index volatility with recurrent neural networks.
+The thesis can be found in the [documents folder](documents), the PyTorch network implementation 
+in the [python folder](python), dataset information is in the [dataset folder](dataset) and various
+R scripts used for building the dataset, generating csv [input files](input_files) for network training, 
+data analysis and [results graphs](graphs) generation are available in the [R scripts folder](R_scripts).
